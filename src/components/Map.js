@@ -4,14 +4,55 @@ import {
   , Marker
   , withScriptjs
   , withGoogleMap
+  , Polyline
 } from "react-google-maps"
+import {
+  compose
+  , withProps
+  , withState
+  , withHandlers
+} from "recompose"
 
-export default withScriptjs(withGoogleMap((props) =>
-  <GoogleMap
-    defaultZoom={0}
+export default compose(
+  withProps({
+
+  })
+  , withHandlers(() => {
+    const refs = {
+      map: undefined,
+    }
+
+    return {
+      onMapMounted: () => ref => {
+        refs.map = ref
+      }
+      , panToMarker: ( e ) => () => refs.map && e.locations.length > 0 ? refs.map.panTo(e.locations[e.locations.length - 1]) : ''
+    }
+  })
+  , withScriptjs
+  , withGoogleMap
+)((props) => {
+  const firstLoc = props.locations[0];
+  const lastLoc = props.locations[props.locations.length - 1]
+
+  const hasMoved = firstLoc !== lastLoc
+
+
+  return <GoogleMap
+    ref={ props.onMapMounted }
+    defaultZoom={ 18 }
     defaultCenter={{ lat: -34.397, lng: 150.644 }}>
 
-    {props.locations.map(loc => <Marker position={ loc } />)}
+    <Marker position={ firstLoc } />
+    {
+      hasMoved
+        ? <Marker position={ lastLoc } />
+        : ''
+    }
+
+    { props.panToMarker() }
 
 
-  </GoogleMap>))
+    <Polyline path={ props.locations } />
+  </GoogleMap>
+})

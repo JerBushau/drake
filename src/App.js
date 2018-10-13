@@ -1,56 +1,76 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
-import G_Map from './components/Map'
+import React, { Component } from 'react'
+import './App.css'
+import GMap from './components/Map'
 
 class App extends Component {
   constructor() {
     super()
     this.state = {
-      locations: [
-        { lat: -34.397, lng: 150.644 }
-        , { lat: -34.397, lng: 120.644 }
-        , { lat: 34.397, lng: 15.644 }
-        , { lat: 6.94640, lng: 151.22973 }
-      ]
-      , count: 4
+      locations: []
+      , walks: []
+      , count: 0
+      , poll: 0
+      , isPolling: false
     }
   }
 
-  pollLocation = () => {
-    navigator.geolocation.watchPosition((pos) => {
+  startPolling = () => {
+    let poll = navigator.geolocation.watchPosition((pos) => {
+      const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+
       console.log('new pos: ', pos.coords)
-      let newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+
+      if (this.state.locations.length > 0
+          && this.sameCoords(this.state.locations[this.state.locations.length -1], newPos))
+          return this.setState({
+            ...this.state
+            , count: this.state.count + 1
+          })
+
       this.setState({
-        ...this.state
-        , locations: [ newPos ]
-        , count: this.state.count++
+        locations: [ ...this.state.locations, newPos ]
+        , count: this.state.count + 1
       })
+    }, null, { enableHighAccuracy: true })
+
+    this.setState({
+      ...this.state
+      , poll: poll
+      , isPolling: true
     })
+  }
 
+  stopPolling = () => {
+    navigator.geolocation.clearWatch(this.state.poll)
+    this.setState({
+      ...this.state
+      , walks: [ ...this.state.walks, this.state.locations ]
+      , locations: []
+      , count: 0
+      , poll: 0
+      , isPolling: false
+    })
+  }
 
+  sameCoords(loc1, loc2) {
+    return Object.keys(loc1).every(i => loc1[i] === loc2[i])
   }
 
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to React</h1>
+          <h1 className="App-title">Welcome to Drake</h1>
         </header>
-        <p className="App-intro">
-          To get started, edit <code>src/App.js</code> and save to reload.
-        </p>
-        <button onClick={ () => this.pollLocation() }>add</button>
-        <G_Map
-          isMarkerShown
+        <button className="btn" onClick={ this.state.isPolling ? this.stopPolling : this.startPolling }>{ this.state.isPolling ? 'stop' : 'start' }</button>
+        <GMap
           locations={ this.state.locations }
           googleMapURL="https://maps.googleapis.com/maps/api/js?key=AIzaSyBg03i5zkHFpxv8XpEdhhdXLT57Y9GXkBc&v=3.exp&libraries=geometry,drawing,places"
           loadingElement={<div style={{ height: `100%` }} />}
-          containerElement={<div style={{ height: `400px` }} />}
-          mapElement={<div style={{ height: `100%` }} />} />
+          containerElement={<div style={{ height: `100vh` }} />}
+          mapElement={<div style={{ height: `100vh` }} />} />
       </div>
-    );
+    )
   }
 }
 
